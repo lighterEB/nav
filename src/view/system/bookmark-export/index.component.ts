@@ -16,7 +16,7 @@ import { getAuthCode } from 'src/utils/user'
 import { NzSwitchModule } from 'ng-zorro-antd/switch'
 import { NzSpinModule } from 'ng-zorro-antd/spin'
 import { dfsNavs } from 'src/utils/pureUtils'
-import LZString from 'lz-string'
+import * as LZString from 'lz-string'
 
 @Component({
   standalone: true,

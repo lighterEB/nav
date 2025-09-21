@@ -21,7 +21,7 @@ import {
   getIsGitLab,
   removeTrailingSlashes,
 } from 'src/utils/pureUtils'
-import LZString from 'lz-string'
+import * as LZString from 'lz-string'
 import event from 'src/utils/mitt'
 
 const { gitRepoUrl, imageRepoUrl } = config

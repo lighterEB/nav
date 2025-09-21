@@ -7,7 +7,7 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc.js'
 import timezone from 'dayjs/plugin/timezone.js'
 import defaultDb from './db'
-import LZString from 'lz-string'
+import * as LZString from 'lz-string'
 import {
   TAG_ID1,
   TAG_ID2,
@@ -385,7 +385,7 @@ const main = async () => {
     settings.footerContent ??= `
 <div class="dark-white">
   <div>共收录$\{total}个网站</div>
-  <div>Copyright © 2018-$\{year} $\{hostname}, All Rights Reserved</div>  
+  <div>Copyright © 2018-$\{year} $\{hostname}, All Rights Reserved</div>
 </div>
 `.trim()
     settings.showThemeToggle ??= true
