@@ -56,7 +56,7 @@ export class UploadImageComponent {
         const iconUrl = this.result as string
         const url = iconUrl.split(',')[1]
         const mime = `.${file.name.split('.').at(-1) || 'png'}`
-        const path = `${Date.now()}${mime}`
+        const path = `nav/${Date.now()}${mime}`
 
         createImageFile({
           branch: getImageRepo().branch,
