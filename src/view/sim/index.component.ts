@@ -12,7 +12,7 @@ import {
 import { CommonModule } from '@angular/common'
 import { settings } from 'src/store'
 import { compilerTemplate } from 'src/utils/utils'
-import { scrollIntoView } from 'src/utils'
+import { scrollIntoViewLeft } from 'src/utils'
 import { CommonService } from 'src/services/common'
 import { ComponentGroupComponent } from 'src/components/component-group/index.component'
 import { WebMoreMenuComponent } from 'src/components/web-more-menu/index.component'
@@ -28,6 +28,7 @@ import { SafeHtmlPipe } from 'src/pipe/safeHtml.pipe'
 import { ToolbarTitleWebComponent } from 'src/components/toolbar-title/index.component'
 import { ClassTabsComponent } from 'src/components/class-tabs/index.component'
 import type { INavProps } from 'src/types'
+import { SidebarComponent } from 'src/components/sidebar/index.component'
 
 @Component({
   standalone: true,
@@ -46,16 +47,17 @@ import type { INavProps } from 'src/types'
     SwiperComponent,
     SafeHtmlPipe,
     ClassTabsComponent,
+    SidebarComponent,
   ],
   selector: 'app-sim',
   templateUrl: './index.component.html',
   styleUrls: ['./index.component.scss'],
 })
 export default class SimComponent {
-  @ViewChild('parent') parentElement!: ElementRef
-  @ViewChildren('item') items!: QueryList<ElementRef>
+  @ViewChild('parent') parentRef!: ElementRef
+  @ViewChildren('item') itemsRef!: QueryList<ElementRef>
 
-  readonly description: string = compilerTemplate(settings.simThemeDesc)
+  readonly description: string = compilerTemplate(settings().simThemeDesc)
 
   constructor(public commonService: CommonService) {}
 
@@ -64,19 +66,19 @@ export default class SimComponent {
   }
 
   get isEllipsis() {
-    return this.commonService.settings.simOverType === 'ellipsis'
+    return this.commonService.settings().simOverType === 'ellipsis'
   }
 
   ngAfterViewInit() {
     if (this.isEllipsis) {
       this.commonService.getOverIndex('.top-nav .over-item')
     } else {
-      scrollIntoView(
-        this.parentElement.nativeElement,
-        this.items.toArray()[this.commonService.oneIndex].nativeElement,
+      scrollIntoViewLeft(
+        this.parentRef.nativeElement,
+        this.itemsRef.toArray()[this.commonService.oneIndex].nativeElement,
         {
           behavior: 'auto',
-        }
+        },
       )
     }
   }
@@ -84,7 +86,7 @@ export default class SimComponent {
   handleClickTop(e: any, data: INavProps) {
     this.commonService.handleClickClass(data.id)
     if (!this.isEllipsis) {
-      scrollIntoView(this.parentElement.nativeElement, e.target)
+      scrollIntoViewLeft(this.parentRef.nativeElement, e.target)
     }
   }
 }

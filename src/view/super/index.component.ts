@@ -22,7 +22,8 @@ import { NoDataComponent } from 'src/components/no-data/no-data.component'
 import { FooterComponent } from 'src/components/footer/footer.component'
 import { FixbarComponent } from 'src/components/fixbar/index.component'
 import { SideImagesComponent } from 'src/components/side-images/index.component'
-import { queryString, scrollIntoView } from 'src/utils'
+import { queryString, scrollIntoViewLeft } from 'src/utils'
+import { SidebarComponent } from 'src/components/sidebar/index.component'
 import type { INavThreeProp, INavProps } from 'src/types'
 import event from 'src/utils/mitt'
 
@@ -40,6 +41,7 @@ import event from 'src/utils/mitt'
     FooterComponent,
     FixbarComponent,
     SideImagesComponent,
+    SidebarComponent,
   ],
   selector: 'app-side',
   templateUrl: './index.component.html',
@@ -56,27 +58,27 @@ export default class SideComponent {
   constructor(public commonService: CommonService) {}
 
   get isEllipsis() {
-    return this.commonService.settings.superOverType === 'ellipsis'
+    return this.commonService.settings().superOverType === 'ellipsis'
   }
 
   ngAfterViewInit() {
     if (this.isEllipsis) {
       this.commonService.getOverIndex('.topnav .over-item')
     } else {
-      scrollIntoView(
+      scrollIntoViewLeft(
         this.parentElement.nativeElement,
         this.items.toArray()[this.commonService.oneIndex].nativeElement,
         {
           behavior: 'auto',
-        }
+        },
       )
     }
 
-    scrollIntoView(
+    scrollIntoViewLeft(
       this.parentThreeElement.nativeElement,
       this.itemsThree.toArray()[this.commonService.selectedThreeIndex]
         .nativeElement,
-      { behavior: 'auto' }
+      { behavior: 'auto' },
     )
   }
 
@@ -93,7 +95,7 @@ export default class SideComponent {
 
   handleClickTop(e: any, data: INavProps) {
     if (!this.isEllipsis) {
-      scrollIntoView(this.parentElement.nativeElement, e.target)
+      scrollIntoViewLeft(this.parentElement.nativeElement, e.target)
     }
     queueMicrotask(() => {
       this.commonService.handleClickClass(data.id)
@@ -102,6 +104,6 @@ export default class SideComponent {
 
   handleClickThree(e: any, data: INavThreeProp) {
     this.commonService.handleClickClass(data.id)
-    scrollIntoView(this.parentThreeElement.nativeElement, e.target)
+    scrollIntoViewLeft(this.parentThreeElement.nativeElement, e.target)
   }
 }

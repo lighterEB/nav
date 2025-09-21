@@ -3,8 +3,8 @@
   *ngIf="isCode; else other"
   [innerHTML]="description | safeHtml"
   [ngStyle]="{
-    'width': cardStyle === 'icon' ? iconSize + 30 + 'px' : '',
-    'height': cardStyle === 'icon' ? iconSize + 30 + 'px' : '',
+    width: cardStyle === 'icon' ? iconSize + 30 + 'px' : '',
+    height: cardStyle === 'icon' ? iconSize + 30 + 'px' : '',
   }"
   #root
 ></div>
@@ -26,7 +26,7 @@
       ></i>
 
       <div
-        class="card-container standard dark-border-color dark-bg"
+        class="card-container standard dark-border-color dark-bg-gary"
         *ngSwitchCase="'standard'"
       >
         <div
@@ -76,7 +76,7 @@
             nz-icon
             [nzType]="copyUrlDone ? 'check' : 'copy'"
             nzTheme="outline"
-            (click)="copyUrl($event, 2)"
+            (click)="copyUrl(2)"
             (mouseout)="copyMouseout()"
           ></div>
           <div
@@ -88,7 +88,7 @@
             nz-icon
             [nzType]="copyPathDone ? 'check' : 'share-alt'"
             nzTheme="outline"
-            (click)="copyUrl($event, 1)"
+            (click)="copyUrl(1)"
             (mouseout)="copyMouseout()"
           ></div>
           <div
@@ -124,7 +124,7 @@
 
       <!-- example style -->
       <div
-        class="card-container example2 dark-bg dark-white dark-shadow"
+        class="card-container example2 dark-bg-gary dark-white dark-shadow"
         [class.noDesc]="!dataSource.desc"
         *ngSwitchCase="'example'"
         (click)="jumpService.goUrl($event, dataSource.url)"
@@ -156,7 +156,7 @@
 
       <!-- original style -->
       <div
-        class="card-container original2 dark-bg dark-white dark-shadow"
+        class="card-container original2 dark-bg-gary dark-white dark-shadow"
         *ngSwitchCase="'original'"
         (click)="jumpService.goUrl($event, dataSource.url)"
       >
@@ -186,7 +186,7 @@
 
       <!-- retro style -->
       <div
-        class="card-container retro2 ellipsis dark-bg dark-white dark-border-color dark-shadow dark-hover"
+        class="card-container retro2 ellipsis dark-bg-gary dark-white dark-border-color dark-shadow dark-hover"
         *ngSwitchCase="'retro'"
       >
         <div
@@ -244,7 +244,7 @@
 
       <!-- poster style -->
       <div
-        class="card-container poster2 ellipsis dark-bg dark-white dark-border-color dark-shadow dark-hover"
+        class="card-container poster2 ellipsis dark-bg-gary dark-white dark-border-color dark-shadow dark-hover"
         *ngSwitchCase="'poster'"
         (click)="jumpService.goUrl($event, dataSource.url)"
       >
@@ -304,7 +304,7 @@
         nz-tooltip
       >
         <ng-template #titleTemplate let-thing>
-          <p>{{ dataSource.__name__ || dataSource.name }}</p>
+          <div>{{ dataSource.__name__ || dataSource.name }}</div>
           {{ dataSource.__desc__ || dataSource.desc }}
           <tag-list
             [data]="dataSource.tags"
@@ -335,7 +335,7 @@
 
       <!-- column style -->
       <div
-        class="card-container column2 ellipsis dark-bg dark-white dark-border-color dark-shadow dark-hover"
+        class="card-container column2 ellipsis dark-bg-gary dark-white dark-border-color dark-shadow dark-hover-bg"
         *ngSwitchDefault
       >
         <div
@@ -372,8 +372,11 @@
         </div>
 
         <div class="bottom-bar">
-          <div class="rate2" *ngIf="settings.showRate">{{ getRate }}</div>
+          <div class="rate2 mt-1" *ngIf="settings.showRate && getRate">
+            {{ getRate }}
+          </div>
           <tag-list
+            class="mt-1"
             [data]="dataSource.tags"
             *ngIf="
               dataSource.tags?.length ||

@@ -28,6 +28,7 @@ import type {
   INavProps,
   InternalProps,
   IComponentProps,
+  ISearchProps,
 } from '../src/types/index'
 import { ComponentType } from '../src/types/index'
 
@@ -35,7 +36,7 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 dayjs.tz.setDefault('Asia/Shanghai')
 
-const getWebs = (): INavProps[] => {
+const getNavs = (): INavProps[] => {
   try {
     const strings = fs.readFileSync(PATHS.db).toString().trim()
     if (!strings) throw new Error('empty')
@@ -58,28 +59,80 @@ const main = async () => {
   const configJson = getConfig()
   fs.writeFileSync(PATHS.configJson, JSON.stringify(configJson))
 
-  const db = getWebs()
+  const db = getNavs()
   let internal = {} as InternalProps
   let settings = {} as ISettings
   let tags: ITagPropValues[] = []
-  let search: any[] = []
-  let components: IComponentProps[] = []
+  let search = {} as ISearchProps
+  let component: IComponentProps = { zoom: 1, components: [] }
 
   try {
     internal = JSON.parse(fs.readFileSync(PATHS.internal).toString())
     settings = JSON.parse(fs.readFileSync(PATHS.settings).toString())
     tags = JSON.parse(fs.readFileSync(PATHS.tag).toString())
-    search = JSON.parse(fs.readFileSync(PATHS.search).toString())
   } catch (e: any) {
     console.log(e.message)
   }
 
   try {
-    components = JSON.parse(fs.readFileSync(PATHS.component).toString())
+    const s = JSON.parse(fs.readFileSync(PATHS.search).toString())
+    if (Array.isArray(s)) {
+      // @ts-ignore
+      search = {
+        list: s,
+      }
+    } else {
+      search = s
+    }
   } catch {
   } finally {
-    let idx = components.findIndex(
-      (item) => item['type'] === ComponentType.Calendar
+    if (!search.list || !search.list.length) {
+      search.list = [
+        {
+          name: '站内',
+          icon:
+            settings.favicon ||
+            'https://gcore.jsdelivr.net/gh/xjh22222228/public@gh-pages/nav/logo.svg',
+          placeholder: '站内搜索',
+          blocked: false,
+          isInner: true,
+        },
+        {
+          name: 'Google',
+          url: 'https://www.google.com/search?q=',
+          icon: 'https://www.google.com/favicon.ico',
+          blocked: false,
+          isInner: false,
+        },
+      ]
+    }
+    search.logo ||= ''
+    search.darkLogo ||= ''
+    search.height ||= 80
+    search.list = search.list.map((item) => {
+      item.icon = replaceJsdelivrCDN(item.icon, settings)
+      return item
+    })
+    fs.writeFileSync(PATHS.search, JSON.stringify(search), {
+      encoding: 'utf-8',
+    })
+  }
+
+  try {
+    const components = JSON.parse(fs.readFileSync(PATHS.component).toString())
+    // < 16
+    if (Array.isArray(components)) {
+      component = {
+        zoom: 1,
+        components,
+      }
+    } else {
+      component = components
+    }
+  } catch {
+  } finally {
+    let idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.Calendar,
     )
     const calendar = {
       type: ComponentType.Calendar,
@@ -88,15 +141,17 @@ const main = async () => {
       bgColor: '#1d1d1d',
     }
     if (idx >= 0) {
-      components[idx] = {
+      component.components[idx] = {
         ...calendar,
-        ...components[idx],
+        ...component.components[idx],
       }
     } else {
-      components.push(calendar)
+      component.components.push(calendar)
     }
     //
-    idx = components.findIndex((item) => item['type'] === ComponentType.OffWork)
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.OffWork,
+    )
     const offWork = {
       type: ComponentType.OffWork,
       id: -ComponentType.OffWork,
@@ -106,15 +161,17 @@ const main = async () => {
       date: new Date(2018, 3, 26, 18, 0, 0).getTime(),
     }
     if (idx >= 0) {
-      components[idx] = {
+      component.components[idx] = {
         ...offWork,
-        ...components[idx],
+        ...component.components[idx],
       }
     } else {
-      components.push(offWork)
+      component.components.push(offWork)
     }
     //
-    idx = components.findIndex((item) => item['type'] === ComponentType.Image)
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.Image,
+    )
     const image = {
       type: ComponentType.Image,
       id: -ComponentType.Image,
@@ -123,20 +180,20 @@ const main = async () => {
       text: '只有认可，才能强大',
     }
     if (idx >= 0) {
-      components[idx] = {
+      component.components[idx] = {
         ...image,
-        ...components[idx],
+        ...component.components[idx],
       }
-      components[idx]['url'] = replaceJsdelivrCDN(
-        components[idx]['url'],
-        settings
+      component.components[idx]['url'] = replaceJsdelivrCDN(
+        component.components[idx]['url'],
+        settings,
       )
     } else {
-      components.push(image)
+      component.components.push(image)
     }
     //
-    idx = components.findIndex(
-      (item) => item['type'] === ComponentType.Countdown
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.Countdown,
     )
     const countdown = {
       type: ComponentType.Countdown,
@@ -150,34 +207,38 @@ const main = async () => {
       date: '2026-02-17',
     }
     if (idx >= 0) {
-      components[idx] = {
+      component.components[idx] = {
         ...countdown,
-        ...components[idx],
+        ...component.components[idx],
       }
-      components[idx]['url'] = replaceJsdelivrCDN(
-        components[idx]['url'],
-        settings
+      component.components[idx]['url'] = replaceJsdelivrCDN(
+        component.components[idx]['url'],
+        settings,
       )
     } else {
-      components.push(countdown)
+      component.components.push(countdown)
     }
     //
-    idx = components.findIndex((item) => item['type'] === ComponentType.Runtime)
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.Runtime,
+    )
     const runtime = {
       type: ComponentType.Runtime,
       id: -ComponentType.Runtime,
       title: '已稳定运行',
     }
     if (idx >= 0) {
-      components[idx] = {
+      component.components[idx] = {
         ...runtime,
-        ...components[idx],
+        ...component.components[idx],
       }
     } else {
-      components.push(runtime)
+      component.components.push(runtime)
     }
     //
-    idx = components.findIndex((item) => item['type'] === ComponentType.HTML)
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.HTML,
+    )
     const html = {
       type: ComponentType.HTML,
       id: -ComponentType.HTML,
@@ -186,111 +247,69 @@ const main = async () => {
       bgColor: '#fff',
     }
     if (idx >= 0) {
-      components[idx] = {
+      component.components[idx] = {
         ...html,
-        ...components[idx],
+        ...component.components[idx],
       }
     } else {
-      components.push(html)
+      component.components.push(html)
     }
     //
-    idx = components.findIndex((item) => item['type'] === ComponentType.Holiday)
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.Holiday,
+    )
     const holiday = {
       type: ComponentType.Holiday,
       id: -ComponentType.Holiday,
       items: [],
     }
     if (idx >= 0) {
-      components[idx] = {
+      component.components[idx] = {
         ...holiday,
-        ...components[idx],
+        ...component.components[idx],
       }
     } else {
-      components.push(holiday)
+      component.components.push(holiday)
     }
     //
-    idx = components.findIndex((item) => item['type'] === ComponentType.News)
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.News,
+    )
     const news = {
       type: ComponentType.News,
       id: -ComponentType.News,
+      bgColor: 'linear-gradient(100deg,#2a2d38, rgb(35, 39, 54))',
       types: [],
       count: 0,
     }
     if (idx >= 0) {
-      components[idx] = {
+      component.components[idx] = {
         ...news,
-        ...components[idx],
+        ...component.components[idx],
       }
     } else {
-      components.push(news)
+      component.components.push(news)
     }
-    fs.writeFileSync(PATHS.component, JSON.stringify(components))
-  }
-
-  {
-    if (!search.length) {
-      search = [
-        {
-          name: '站内',
-          icon: 'https://gcore.jsdelivr.net/gh/xjh22222228/public@gh-pages/nav/logo.svg',
-          placeholder: '站内搜索',
-          blocked: false,
-          isInner: true,
-        },
-        {
-          name: '百度',
-          url: 'https://www.baidu.com/s?wd=',
-          icon: 'https://gcore.jsdelivr.net/gh/xjh22222228/nav-image@image/baidu.svg',
-          placeholder: '百度一下',
-          blocked: false,
-          isInner: false,
-        },
-        {
-          name: 'Google',
-          url: 'https://www.google.com/search?q=',
-          icon: 'https://gcore.jsdelivr.net/gh/xjh22222228/nav-image@image/google.svg',
-          blocked: false,
-          isInner: false,
-        },
-        {
-          name: '必应',
-          url: 'https://cn.bing.com/search?q=',
-          icon: 'https://gcore.jsdelivr.net/gh/xjh22222228/nav-image@image/bing.svg',
-          blocked: false,
-          isInner: false,
-        },
-        {
-          name: 'GitHub',
-          url: 'https://github.com/search?q=',
-          icon: 'https://gcore.jsdelivr.net/gh/xjh22222228/nav-image@image/github.svg',
-          placeholder: 'Search GitHub',
-          blocked: false,
-          isInner: false,
-        },
-        {
-          name: '知乎',
-          url: 'https://www.zhihu.com/search?type=content&q=',
-          icon: 'https://gcore.jsdelivr.net/gh/xjh22222228/nav-image@image/zhihu.svg',
-          blocked: false,
-          isInner: false,
-        },
-        {
-          name: '豆瓣',
-          url: 'https://search.douban.com/book/subject_search?search_text=',
-          icon: 'https://gcore.jsdelivr.net/gh/xjh22222228/nav-image@image/douban.svg',
-          placeholder: '书名、作者、ISBN',
-          blocked: false,
-          isInner: false,
-        },
-      ]
-      search = search.map((item) => {
-        item.icon = replaceJsdelivrCDN(item.icon, settings)
-        return item
-      })
-      fs.writeFileSync(PATHS.search, JSON.stringify(search), {
-        encoding: 'utf-8',
-      })
+    //
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.Carousel,
+    )
+    const carousel = {
+      type: ComponentType.Carousel,
+      id: -ComponentType.Carousel,
+      imgs: [],
+      width: 220,
+      fit: 'cover',
     }
+    if (idx >= 0) {
+      component.components[idx] = {
+        ...carousel,
+        ...component.components[idx],
+      }
+    } else {
+      component.components.push(carousel)
+    }
+    fs.writeFileSync(PATHS.component, JSON.stringify(component))
   }
 
   {
@@ -359,17 +378,19 @@ const main = async () => {
     settings.keywords ??= '免费导航,开源导航'
     settings.theme ??= 'Light'
     settings.actionUrl ??= ''
-    settings.appTheme ??= 'App'
+    settings.appTheme ??= 'Current'
     settings.openSEO ??= !configJson.address
     settings.createWebKey ??= 'E'
     settings.headerContent ??= ''
     settings.footerContent ??= `
 <div class="dark-white">
-  <div>共收录$\{total\}个网站</div>
+  <div>共收录$\{total}个网站</div>
   <div>Copyright © 2018-$\{year} $\{hostname}, All Rights Reserved</div>  
 </div>
 `.trim()
     settings.showThemeToggle ??= true
+    settings.logo ||= ''
+    settings.darkLogo ||= ''
 
     settings.lightDocTitle ||= ''
     settings.lightCardStyle ||= 'standard'
@@ -460,11 +481,11 @@ const main = async () => {
     settings.gitHubCDN ||= 'gcore.jsdelivr.net'
     settings.components ||= []
 
+    settings.pwaEnable ??= false
+    settings.pwaName ??= '发现导航'
+    settings.pwaIcon ||= ''
+
     // 替换CDN
-    search = search.map((item) => {
-      item.icon = replaceJsdelivrCDN(item.icon, settings)
-      return item
-    })
     settings.favicon = replaceJsdelivrCDN(settings.favicon, settings)
     settings.simThemeImages = settings.simThemeImages.map((item) => {
       item.src = replaceJsdelivrCDN(item.src, settings)

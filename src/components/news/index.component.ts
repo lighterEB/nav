@@ -11,15 +11,16 @@ import {
   QueryList,
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import type { IComponentProps } from 'src/types'
+import type { IComponentItemProps } from 'src/types'
 import { newsTypeMap } from './types'
 import { getNews } from 'src/api'
 import { JumpService } from 'src/services/jump'
 import { STORAGE_KEY_MAP } from 'src/constants'
 import { $t } from 'src/locale'
 import { NewsType } from 'src/types'
-import { scrollIntoView } from 'src/utils'
+import { scrollIntoViewLeft } from 'src/utils'
 import { LoadingComponent } from 'src/components/loading/index.component'
+import { component } from 'src/store'
 
 interface INewsItem {
   text: string
@@ -37,11 +38,13 @@ interface INewsItem {
 })
 export class NewsComponent {
   @ViewChild('parent') parentElement!: ElementRef
+  @ViewChild('content') contentRef!: ElementRef
   @ViewChildren('item') items!: QueryList<ElementRef>
-  @Input() data!: IComponentProps
+  @Input() data!: IComponentItemProps
 
   readonly $t = $t
   readonly newsTypeMap = newsTypeMap
+  readonly component = component()
   activeIndex = 0
   newsListMap: Record<string, INewsItem[]> = {}
   loading = false
@@ -66,16 +69,16 @@ export class NewsComponent {
 
   onMouseEnter(index: number) {
     this.activeIndex = index
-    this.scrollIntoViewTabs()
+    this.contentRef.nativeElement.scrollTop = 0
   }
 
-  private scrollIntoViewTabs() {
-    scrollIntoView(
+  scrollIntoViewTabs() {
+    scrollIntoViewLeft(
       this.parentElement.nativeElement,
       this.items.toArray()[this.activeIndex].nativeElement,
       {
         behavior: 'smooth',
-      }
+      },
     )
   }
 
@@ -106,11 +109,11 @@ export class NewsComponent {
         }
         localStorage.setItem(
           STORAGE_KEY_MAP.NEWS,
-          JSON.stringify(this.newsListMap)
+          JSON.stringify(this.newsListMap),
         )
         localStorage.setItem(
           STORAGE_KEY_MAP.NEWS_DATE,
-          JSON.stringify(Date.now())
+          JSON.stringify(Date.now()),
         )
       })
       .finally(() => {

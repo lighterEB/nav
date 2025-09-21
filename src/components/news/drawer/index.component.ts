@@ -53,19 +53,23 @@ export class NewsDrawerComponent {
     { label: newsTypeMap[NewsType.Xiaohongshu], value: NewsType.Xiaohongshu },
     { label: newsTypeMap[NewsType.Toutiao], value: NewsType.Toutiao },
     { label: newsTypeMap[NewsType.Douban], value: NewsType.Douban },
+    { label: newsTypeMap[NewsType.HackerNews], value: NewsType.HackerNews },
+    { label: newsTypeMap[NewsType.Zhihu], value: NewsType.Zhihu },
+    { label: newsTypeMap[NewsType.ZhihuDaily], value: NewsType.ZhihuDaily },
   ]
 
   constructor(private fb: FormBuilder) {
     this.validateForm = this.fb.group({
       types: [[]],
       count: [0],
+      bgColor: [''],
     })
   }
 
   open(data: any, idx: number) {
     this.index = idx
     for (const k in data) {
-      this.validateForm.get(k)!?.setValue(data[k])
+      this.validateForm.get(k)?.setValue(data[k])
     }
     this.visible = true
   }

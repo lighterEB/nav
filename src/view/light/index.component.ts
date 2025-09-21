@@ -10,7 +10,7 @@ import {
   QueryList,
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { randomBgImg, removeBgImg, scrollIntoView } from 'src/utils'
+import { randomBgImg, removeBgImg, scrollIntoViewLeft } from 'src/utils'
 import { CommonService } from 'src/services/common'
 import { ComponentGroupComponent } from 'src/components/component-group/index.component'
 import { WebMoreMenuComponent } from 'src/components/web-more-menu/index.component'
@@ -25,6 +25,7 @@ import { ToolbarTitleWebComponent } from 'src/components/toolbar-title/index.com
 import { SideImagesComponent } from 'src/components/side-images/index.component'
 import { ClassTabsComponent } from 'src/components/class-tabs/index.component'
 import type { INavProps } from 'src/types'
+import { SidebarComponent } from 'src/components/sidebar/index.component'
 
 @Component({
   standalone: true,
@@ -42,6 +43,7 @@ import type { INavProps } from 'src/types'
     FixbarComponent,
     SideImagesComponent,
     ClassTabsComponent,
+    SidebarComponent,
   ],
   selector: 'app-light',
   templateUrl: './index.component.html',
@@ -49,12 +51,15 @@ import type { INavProps } from 'src/types'
 })
 export default class LightComponent {
   @ViewChild('parent') parentElement!: ElementRef
+  @ViewChild(ComponentGroupComponent) componentChild!: ComponentGroupComponent
   @ViewChildren('item') items!: QueryList<ElementRef>
+
+  componentMaxWidth = ''
 
   constructor(public commonService: CommonService) {}
 
   get isEllipsis() {
-    return this.commonService.settings.lightOverType === 'ellipsis'
+    return this.commonService.settings().lightOverType === 'ellipsis'
   }
 
   ngOnInit() {
@@ -70,20 +75,27 @@ export default class LightComponent {
     if (this.isEllipsis) {
       this.commonService.getOverIndex('.top-nav .over-item')
     } else {
-      scrollIntoView(
+      scrollIntoViewLeft(
         this.parentElement.nativeElement,
         this.items.toArray()[this.commonService.oneIndex].nativeElement,
         {
           behavior: 'auto',
-        }
+        },
       )
+    }
+
+    if (this.componentChild) {
+      setTimeout(() => {
+        this.componentMaxWidth =
+          Math.max(...this.componentChild.getWidths()) + 'px'
+      })
     }
   }
 
   handleClickTop(e: any, data: INavProps) {
     this.commonService.handleClickClass(data.id)
     if (!this.isEllipsis) {
-      scrollIntoView(this.parentElement.nativeElement, e.target)
+      scrollIntoViewLeft(this.parentElement.nativeElement, e.target)
     }
   }
 }

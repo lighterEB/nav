@@ -4,9 +4,9 @@
 
 import { Component, Input } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { settings, components } from 'src/store'
+import { settings, component } from 'src/store'
 import { ComponentType } from 'src/types'
-import type { IComponentProps } from 'src/types'
+import type { IComponentItemProps } from 'src/types'
 import { CalendarComponent } from 'src/components/calendar/index.component'
 import { RuntimeComponent } from 'src/components/runtime/index.component'
 import { OffWorkComponent } from 'src/components/off-work/index.component'
@@ -15,8 +15,9 @@ import { CountdownComponent } from 'src/components/countdown/index.component'
 import { HTMLComponent } from 'src/components/html/index.component'
 import { HolidayComponent } from 'src/components/holiday/index.component'
 import { NewsComponent } from 'src/components/news/index.component'
-import { Subject } from 'rxjs'
-import { debounceTime, takeUntil } from 'rxjs/operators'
+import { CarouselComponent } from 'src/components/carousel/index.component'
+import { fromEvent, Subscription } from 'rxjs'
+import { debounceTime } from 'rxjs/operators'
 import { NzIconModule } from 'ng-zorro-antd/icon'
 import event from 'src/utils/mitt'
 import { isMobile } from 'src/utils'
@@ -35,6 +36,7 @@ import { STORAGE_KEY_MAP } from 'src/constants'
     HolidayComponent,
     NzIconModule,
     NewsComponent,
+    CarouselComponent,
   ],
   selector: 'component-group',
   templateUrl: './index.component.html',
@@ -43,15 +45,14 @@ import { STORAGE_KEY_MAP } from 'src/constants'
 export class ComponentGroupComponent {
   @Input() direction: 'column' | '' = ''
 
-  private windowResizeSubject = new Subject<Event>()
-  private destroy$ = new Subject<void>()
+  private scrollSubscription: Subscription | null = null
   readonly isMobile = isMobile()
   ComponentType = ComponentType
-  components: IComponentProps[] = []
-  componentsLength: number = settings.components.length
+  components: IComponentItemProps[] = []
+  componentsLength: number = settings().components.length
   widths: number[] = []
   isShowAll = !!Number(
-    localStorage.getItem(STORAGE_KEY_MAP.COMPONENT_COLLAPSED)
+    localStorage.getItem(STORAGE_KEY_MAP.COMPONENT_COLLAPSED),
   )
   isOver = false
 
@@ -60,17 +61,11 @@ export class ComponentGroupComponent {
       this.isOver = true
     }
 
-    this.windowResizeSubject
-      .pipe(debounceTime(100), takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.checkOver()
-      })
-
-    const c: IComponentProps[] = []
+    const c: IComponentItemProps[] = []
     // 按照系统设置顺序排序显示
-    components.forEach((item) => {
-      const has = settings.components.find(
-        (c) => c.type === item.type && c.id === item.id
+    component().components.forEach((item) => {
+      const has = settings().components.find(
+        (c) => c.type === item.type && c.id === item.id,
       )
       if (has) {
         c.push({
@@ -100,24 +95,30 @@ export class ComponentGroupComponent {
       this.components.length
     ) {
       requestAnimationFrame(() => {
-        const items = document.querySelectorAll('.component-group .citems')
-        const widths: number[] = []
-        items.forEach((item) => {
-          widths.push((item as HTMLElement).offsetWidth)
-        })
-        this.widths = widths
+        this.widths = this.getWidths()
         if (!this.isShowAll && !this.isOver) {
           this.checkOver()
         }
-        window.addEventListener('resize', this.windowResize.bind(this))
+        this.scrollSubscription = fromEvent(window, 'resize')
+          .pipe(debounceTime(100))
+          .subscribe(() => this.checkOver())
       })
     }
   }
 
+  public getWidths(): number[] {
+    const items = document.querySelectorAll('.component-group .citems')
+    const widths: number[] = []
+    items.forEach((item) => {
+      widths.push((item as HTMLElement).offsetWidth)
+    })
+    return widths
+  }
+
   ngOnDestroy() {
-    window.removeEventListener('resize', this.windowResize.bind(this))
-    this.destroy$.next()
-    this.destroy$.complete()
+    if (this.scrollSubscription) {
+      this.scrollSubscription.unsubscribe()
+    }
     event.off('COMPONENT_CHECK_OVER')
   }
 
@@ -125,15 +126,11 @@ export class ComponentGroupComponent {
     this.isShowAll = !this.isShowAll
     localStorage.setItem(
       STORAGE_KEY_MAP.COMPONENT_COLLAPSED,
-      String(Number(this.isShowAll))
+      String(Number(this.isShowAll)),
     )
     if (!this.isShowAll) {
       this.checkOver()
     }
-  }
-
-  private windowResize(event: Event) {
-    this.windowResizeSubject.next(event)
   }
 
   private checkOver() {

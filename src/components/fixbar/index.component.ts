@@ -9,15 +9,18 @@ import { NzModalService } from 'ng-zorro-antd/modal'
 import { NzMessageService } from 'ng-zorro-antd/message'
 import { isLogin } from 'src/utils/user'
 import { updateFileContent } from 'src/api'
-import { websiteList, settings } from 'src/store'
+import { navs, settings } from 'src/store'
 import { DB_PATH, STORAGE_KEY_MAP } from 'src/constants'
 import { Router } from '@angular/router'
 import { $t, getLocale } from 'src/locale'
-import { addDark, removeDark } from 'src/utils/utils'
+import { addDark, removeDark, isSelfDevelop } from 'src/utils/utils'
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown'
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip'
 import { cleanWebAttrs } from 'src/utils/pureUtils'
 import mitt from 'src/utils/mitt'
+import { fromEvent, Subscription } from 'rxjs'
+import { debounceTime } from 'rxjs/operators'
+import { unregisterServiceWorkers, isPwaMode } from 'src/utils/sw'
 
 @Component({
   standalone: true,
@@ -35,14 +38,17 @@ export class FixbarComponent {
   @Output() onCollapse = new EventEmitter()
 
   readonly $t = $t
-  readonly settings = settings
+  readonly settings = settings()
   readonly language = getLocale()
   readonly isLogin = isLogin
+  private scrollSubscription: Subscription | null = null
+  readonly isSelfDevelop = isSelfDevelop
+  readonly isPwaMode = isPwaMode() && window.__PWA_ENABLE__
   isDark: boolean = isDarkFn()
-  websiteList = websiteList
-  syncLoading = false
   isShowFace = true
+  isShowTop = false
   entering = false
+  checking = false
   open = localStorage.getItem(STORAGE_KEY_MAP.FIXBAR_OPEN) === 'true'
   themeList = [
     {
@@ -74,14 +80,14 @@ export class FixbarComponent {
   constructor(
     private message: NzMessageService,
     private modal: NzModalService,
-    private router: Router
+    private router: Router,
   ) {
     if (this.isDark) {
       addDark()
     }
 
     const url = this.router.url.split('?')[0]
-    const defaultTheme = settings.theme?.toLowerCase?.()
+    const defaultTheme = this.settings.theme?.toLowerCase?.()
     this.themeList = this.themeList
       .map((item) => {
         if (item.url === '/' + defaultTheme) {
@@ -90,10 +96,16 @@ export class FixbarComponent {
         return item
       })
       .filter((t) => {
-        if (url === '/' && url + settings.theme?.toLowerCase?.() === t.url) {
+        if (
+          url === '/' &&
+          url + this.settings.theme?.toLowerCase?.() === t.url
+        ) {
           return false
         }
-        if (t.url === '/' && url === t.url + settings.theme?.toLowerCase?.()) {
+        if (
+          t.url === '/' &&
+          url === t.url + this.settings.theme?.toLowerCase?.()
+        ) {
           return false
         }
         return t.url !== url
@@ -101,12 +113,36 @@ export class FixbarComponent {
 
     if (!isLogin) {
       const isShowFace =
-        [settings.showLanguage, settings.showThemeToggle].filter(Boolean)
-          .length === 0
+        [this.settings.showLanguage, this.settings.showThemeToggle].filter(
+          Boolean,
+        ).length === 0
       if (isShowFace) {
         this.open = true
         this.isShowFace = false
       }
+    }
+  }
+
+  onScroll(event: any) {
+    const top = event?.target?.scrollTop || scrollY
+    this.isShowTop = top > 100
+  }
+
+  ngAfterViewInit() {
+    const target = this.selector
+      ? (document.querySelector(this.selector) as HTMLElement)
+      : window
+
+    this.onScroll(target)
+    this.scrollSubscription = fromEvent(target, 'scroll')
+      .pipe(debounceTime(100))
+      .subscribe((event) => this.onScroll(event))
+  }
+
+  ngOnDestroy() {
+    if (this.scrollSubscription) {
+      this.scrollSubscription.unsubscribe()
+      this.scrollSubscription = null
     }
   }
 
@@ -120,18 +156,19 @@ export class FixbarComponent {
   }
 
   goTop() {
+    const config: ScrollToOptions = {
+      top: 0,
+      behavior: 'smooth',
+    }
     if (this.selector) {
       const el = document.querySelector(this.selector)
       if (el) {
-        el.scrollTop = 0
+        el.scrollTo(config)
       }
       return
     }
 
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
+    window.scrollTo(config)
   }
 
   collapse() {
@@ -143,7 +180,7 @@ export class FixbarComponent {
     mitt.emit('EVENT_DARK', this.isDark)
     window.localStorage.setItem(
       STORAGE_KEY_MAP.IS_DARK,
-      String(Number(this.isDark))
+      String(Number(this.isDark)),
     )
 
     if (this.isDark) {
@@ -159,41 +196,48 @@ export class FixbarComponent {
   }
 
   handleOpen() {
+    if (!this.isShowFace) {
+      return
+    }
     this.open = !this.open
     localStorage.setItem(STORAGE_KEY_MAP.FIXBAR_OPEN, String(this.open))
   }
 
-  handleSync() {
-    if (this.syncLoading) {
-      this.message.warning($t('_repeatOper'))
-      return
-    }
+  unregisterServiceWorkers() {
+    this.checking = true
+    unregisterServiceWorkers()
+      .then((status) => {
+        if (status) {
+          setTimeout(() => {
+            location.reload()
+          }, 2000)
+        } else {
+          this.checking = false
+        }
+      })
+      .catch(() => {
+        this.checking = false
+      })
+  }
 
+  handleSync() {
     this.modal.info({
       nzTitle: $t('_syncDataOut'),
       nzOkText: $t('_confirmSync'),
       nzContent: $t('_confirmSyncTip'),
-      nzOnOk: () => {
-        this.syncLoading = true
-
-        updateFileContent({
+      nzOnOk: async () => {
+        await updateFileContent({
           message: 'update db',
-          content: JSON.stringify(
-            cleanWebAttrs(JSON.parse(JSON.stringify(this.websiteList)))
-          ),
+          content: JSON.stringify(cleanWebAttrs(navs())),
           path: DB_PATH,
         })
-          .then(() => {
-            this.message.success($t('_syncSuccessTip'))
-          })
-          .finally(() => {
-            this.syncLoading = false
-          })
+        this.message.success($t('_syncSuccessTip'))
       },
     })
   }
 
   toggleLocale() {
+    this.handleOpen()
     const l = this.language === 'en' ? 'zh-CN' : 'en'
     localStorage.setItem(STORAGE_KEY_MAP.LANGUAGE, l)
     location.reload()

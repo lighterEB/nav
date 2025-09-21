@@ -2,13 +2,7 @@
 // Copyright @ 2018-present xiejiahe. All rights reserved.
 // See https://github.com/xjh22222228/nav
 
-export type ThemeType =
-  | 'Current'
-  | 'Light'
-  | 'Sim'
-  | 'Side'
-  | 'App'
-  | 'Shortcut'
+export type ThemeType = 'Light' | 'Sim' | 'Side' | 'App' | 'Shortcut' | 'Super'
 
 export enum TopType {
   Side = 1,
@@ -24,6 +18,7 @@ export enum ComponentType {
   HTML = 6,
   Holiday = 7,
   News = 8,
+  Carousel = 9,
 }
 
 export enum ActionType {
@@ -44,11 +39,15 @@ export enum NewsType {
   Xiaohongshu = 9,
   Toutiao = 10,
   Douban = 11,
+  HackerNews = 12,
+  Zhihu = 13,
+  ZhihuDaily = 14,
 }
 
 export interface INewsProps {
   types: NewsType[]
   count: number
+  bgColor: string
 }
 
 export interface ICalendarProps {
@@ -61,6 +60,12 @@ export interface IOffWorkProps {
   restTitle: string
   startDate: number
   date: number | string
+}
+
+export interface ICarouselProps {
+  imgs: ImageProps[]
+  width: number
+  fit: string
 }
 
 export interface IImageProps {
@@ -93,17 +98,23 @@ export interface IHolidayProps {
   items: any[]
 }
 
-export interface IComponentProps
-  extends Partial<INewsProps>,
+export interface IComponentItemProps
+  extends Partial<Omit<INewsProps, 'bgColor'>>,
     Partial<ICalendarProps>,
     Partial<IOffWorkProps>,
     Partial<IImageProps>,
     Partial<Omit<ICountdownProps, 'date'>>,
     Partial<IRuntimeProps>,
+    Partial<ICarouselProps>,
     Partial<Omit<IHtmlProps, 'bgColor'>> {
   id: number
   type: number
   [key: string]: any
+}
+
+export interface IComponentProps {
+  zoom: number
+  components: IComponentItemProps[]
 }
 
 export type ICardType =
@@ -125,6 +136,7 @@ export interface ITagPropValues {
   color: string
   desc: string
   isInner: boolean
+  noOpen?: boolean
   sort?: number | string
 
   [key: string]: any
@@ -185,13 +197,20 @@ export interface INavProps extends BaseNavItem {
   [key: string]: any
 }
 
-export interface ISearchProps {
+export interface ISearchItemProps {
   name: string
   icon: string
   blocked: boolean
   isInner: boolean
   url?: string
   placeholder?: string
+}
+
+export interface ISearchProps {
+  logo: string
+  darkLogo: string
+  height: number
+  list: ISearchItemProps[]
 }
 
 export interface ImageProps {
@@ -215,7 +234,7 @@ export interface ISettings {
   keywords: string
   theme: ThemeType
   openSEO: boolean
-  appTheme: ThemeType
+  appTheme: ThemeType | 'Current'
   footerContent: string
   headerContent: string
   showGithub: boolean
@@ -227,6 +246,8 @@ export interface ISettings {
   checkUrl: boolean
   errorUrlCount?: number
   createWebKey: string
+  logo: string
+  darkLogo: string
 
   appCardStyle: ICardType
   appDocTitle: string
@@ -283,9 +304,13 @@ export interface ISettings {
   loadingCode: string
   openSearch: boolean
   gitHubCDN: string
-  components: IComponentProps[]
+  components: IComponentItemProps[]
 
   runtime: number
+
+  pwaEnable: boolean
+  pwaName: string
+  pwaIcon: string
 
   [key: string]: any
 }
